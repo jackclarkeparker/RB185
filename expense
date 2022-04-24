@@ -2,6 +2,8 @@
 
 require 'pg'
 
+CONNECTION = PG.connect(dbname: 'expenses')
+
 def display_help
   puts <<~HELP
     An expense recording system
@@ -17,8 +19,7 @@ def display_help
 end
 
 def list_expenses
-  db = PG.connect(dbname: "expenses")
-  result = db.exec('TABLE expenses ORDER BY created_on;')
+  result = CONNECTION.exec('TABLE expenses ORDER BY created_on;')
 
   result.each do |tuple|
     columns = [ tuple['id'].rjust(2),
@@ -32,18 +33,30 @@ end
 
 def add_expense_conditional
   case ARGV.size
-  when (4..) then add_expense(ARGV[1], "'#{ARGV[2]}'", "'#{ARGV[3]}'")
-  when 3     then add_expense(ARGV[1], "'#{ARGV[2]}'")
+  when (4..) then add_expense(ARGV[1], ARGV[2], ARGV[3])
+  when 3     then add_expense(ARGV[1], ARGV[2])
   else            puts "You must provide an amount and memo."
   end
 end
 
-def add_expense(amount, memo, created_on = "NOW()")
-  db = PG.connect(dbname: "expenses")
+def add_expense(amount, memo, created_on = Date.today)
   insert = "INSERT INTO expenses (amount, memo, created_on) "\
-           "VALUES (#{amount}, #{memo}, #{created_on})"
-  db.exec(insert)
+           "VALUES (#{amount}, '#{memo}', '#{created_on}')"
+  CONNECTION.exec(insert)
 end
+
+# I used NOW() to find the current time, because I've been working with SQL
+# functions lately. 
+
+# However, there's no need to rely on SQL functions when we can use Ruby functions instead.
+# By using Date.today, we get around the awkwardness of whether to place
+# quotes for `created_on` (which varies depending on whether you're using
+# the `NOW()` function, or an argument that's been supplied)
+
+# The question of where and how to supply single quotes has also been simplified by this.
+# It's better to place them directly in the `insert` string, rather than arranging for the
+# interpolation of the arguments to bring the single quotes with them - This spreads
+# concerns addressing the string in more than one place unnecessarily.
 
 command = ARGV.first
 case command
