@@ -30,9 +30,27 @@ def list_expenses
   end
 end
 
+def add_expense_conditional
+  case ARGV.size
+  when (4..) then add_expense(ARGV[1], "'#{ARGV[2]}'", "'#{ARGV[3]}'")
+  when 3     then add_expense(ARGV[1], "'#{ARGV[2]}'")
+  else            puts "You must provide an amount and memo."
+  end
+end
+
+def add_expense(amount, memo, created_on = "NOW()")
+  db = PG.connect(dbname: "expenses")
+  insert = "INSERT INTO expenses (amount, memo, created_on) "\
+           "VALUES (#{amount}, #{memo}, #{created_on})"
+  db.exec(insert)
+end
+
 command = ARGV.first
-if command == 'list'
+case command
+when 'list'
   list_expenses
+when 'add'
+  add_expense_conditional
 else
   display_help
 end
