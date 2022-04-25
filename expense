@@ -40,9 +40,16 @@ def add_expense_conditional
 end
 
 def add_expense(amount, memo, created_on = Date.today)
+  memo = escaped_single_quotes(memo)
   insert = "INSERT INTO expenses (amount, memo, created_on) "\
            "VALUES (#{amount}, '#{memo}', '#{created_on}')"
   CONNECTION.exec(insert)
+end
+
+def escaped_single_quotes(message)
+  message.gsub(/[^']'[^']/) do |match|
+    match[0] + "''" + match[2]
+  end
 end
 
 # I used NOW() to find the current time, because I've been working with SQL
