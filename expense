@@ -2,55 +2,63 @@
 
 require 'pg'
 
-CONNECTION = PG.connect(dbname: 'expenses')
+class CLI
+  def initialize
+    @expense_data = ExpenseData.new
+  end
 
-def display_help
-  puts <<~HELP
-    An expense recording system
+  def run(args)
+    command = args.first
 
-    Commands:
-
-    add AMOUNT MEMO [DATE] - record a new expense
-    clear - delete all expenses
-    list - list all expenses
-    delete NUMBER - remove expense with id NUMBER
-    search QUERY - list expenses with a matching memo field
-  HELP
-end
-
-def list_expenses
-  result = CONNECTION.exec('TABLE expenses ORDER BY created_on;')
-
-  result.each do |tuple|
-    columns = [ tuple['id'].rjust(2),
-                tuple['created_on'],
-                tuple['amount'].rjust(12),
-                tuple['memo'] ]
-
-    puts columns.join(' | ')
+    if command == 'list'
+      @expense_data.list_expenses
+    elsif command == 'add'
+      abort "You must provide an amount and memo." if args.size < 3
+      @expense_data.add_expense(*args[1..-1])
+    else
+      @expense_data.display_help
+    end
   end
 end
 
-def add_expense_conditional
-  case ARGV.size
-  when (4..) then add_expense(ARGV[1], ARGV[2], ARGV[3])
-  when 3     then add_expense(ARGV[1], ARGV[2])
-  else            puts "You must provide an amount and memo."
+class ExpenseData
+  def initialize
+    @connection = PG::Connection.new(dbname: "expenses")
+  end
+
+  def display_help
+    puts <<~HELP
+      An expense recording system
+
+      Commands:
+
+      add AMOUNT MEMO [DATE] - record a new expense
+      clear - delete all expenses
+      list - list all expenses
+      delete NUMBER - remove expense with id NUMBER
+      search QUERY - list expenses with a matching memo field
+    HELP
+  end
+
+  def list_expenses
+    result = @connection.exec('TABLE expenses ORDER BY created_on;')
+
+    result.each do |tuple|
+      columns = [ tuple['id'].rjust(2),
+                  tuple['created_on'],
+                  tuple['amount'].rjust(12),
+                  tuple['memo'] ]
+
+      puts columns.join(' | ')
+    end
+  end
+
+  def add_expense(amount, memo, created_on = Date.today)
+    sql = "INSERT INTO expenses (amount, memo, created_on) VALUES ($1, $2, $3)"
+    @connection.exec_params(sql, [amount, memo, created_on])
   end
 end
 
-def add_expense(amount, memo, created_on = Date.today)
-  sql = "INSERT INTO expenses (amount, memo, created_on) VALUES ($1, $2, $3)"
-  CONNECTION.exec_params(sql, [amount, memo, created_on])
-end
-
-command = ARGV.first
-case command
-when 'list'
-  list_expenses
-when 'add'
-  add_expense_conditional
-else
-  display_help
-end
+cli = CLI.new
+cli.run(ARGV)
 
