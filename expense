@@ -40,30 +40,9 @@ def add_expense_conditional
 end
 
 def add_expense(amount, memo, created_on = Date.today)
-  memo = escaped_single_quotes(memo)
-  insert = "INSERT INTO expenses (amount, memo, created_on) "\
-           "VALUES (#{amount}, '#{memo}', '#{created_on}')"
-  CONNECTION.exec(insert)
+  sql = "INSERT INTO expenses (amount, memo, created_on) VALUES ($1, $2, $3)"
+  CONNECTION.exec_params(sql, [amount, memo, created_on])
 end
-
-def escaped_single_quotes(message)
-  message.gsub(/[^']'[^']/) do |match|
-    match[0] + "''" + match[2]
-  end
-end
-
-# I used NOW() to find the current time, because I've been working with SQL
-# functions lately. 
-
-# However, there's no need to rely on SQL functions when we can use Ruby functions instead.
-# By using Date.today, we get around the awkwardness of whether to place
-# quotes for `created_on` (which varies depending on whether you're using
-# the `NOW()` function, or an argument that's been supplied)
-
-# The question of where and how to supply single quotes has also been simplified by this.
-# It's better to place them directly in the `insert` string, rather than arranging for the
-# interpolation of the arguments to bring the single quotes with them - This spreads
-# concerns addressing the string in more than one place unnecessarily.
 
 command = ARGV.first
 case command
