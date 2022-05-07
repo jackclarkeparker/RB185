@@ -19,7 +19,9 @@ class CLI
     when 'list'
       @application.list_expenses
     when 'search'
-      @application.search_expenses(ARGV.last)
+      @application.search_expenses(arguments[0])
+    when 'delete'
+      @application.delete_expense(arguments[0])
     else
       display_help
     end
@@ -70,6 +72,21 @@ class ExpenseData
                   record['memo'] ]
 
       puts columns.join(' | ')
+    end
+  end
+
+  def delete_expense(index)
+    sql = "SELECT * FROM expenses WHERE id = $1"
+    result = @connection.exec_params(sql, [index])
+    
+    if result.ntuples == 1
+      sql = "DELETE FROM expenses WHERE id = $1"
+      @connection.exec_params(sql, [index])
+
+      puts "The following expense has been deleted:"
+      display_expenses(result)
+    else
+      puts "There is no expense with the id '#{index}'"
     end
   end
 end
