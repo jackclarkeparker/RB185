@@ -4,26 +4,25 @@ require 'pg'
 
 class CLI
   def initialize
-    @expense_data = ExpenseData.new
+    @application = ExpenseData.new
   end
 
-  def run(args)
-    command = args.first
+  def run(arguments)
+    command = arguments.shift
 
-    if command == 'list'
-      @expense_data.list_expenses
-    elsif command == 'add'
-      abort "You must provide an amount and memo." if args.size < 3
-      @expense_data.add_expense(*args[1..-1])
+    case command
+    when 'add'
+      amount = arguments[0]
+      memo = arguments[1]
+      abort "You must provide an amount and memo." unless amount && memo
+      @application.add_expense(amount, memo)
+    when 'list'
+      @application.list_expenses
+    when 'search'
+      @application.search_expenses(ARGV.last)
     else
-      @expense_data.display_help
+      display_help
     end
-  end
-end
-
-class ExpenseData
-  def initialize
-    @connection = PG::Connection.new(dbname: "expenses")
   end
 
   def display_help
@@ -39,26 +38,43 @@ class ExpenseData
       search QUERY - list expenses with a matching memo field
     HELP
   end
+end
+
+class ExpenseData
+  def initialize
+    @connection = PG::Connection.new(dbname: "expenses")
+  end
+
+  def add_expense(amount, memo)
+    date = Date.today
+    sql = "INSERT INTO expenses (amount, memo, created_on) VALUES ($1, $2, $3)"
+    @connection.exec_params(sql, [amount, memo, date])
+  end
 
   def list_expenses
-    result = @connection.exec('TABLE expenses ORDER BY created_on;')
+    result_set = @connection.exec('TABLE expenses ORDER BY created_on;')
+    display_expenses(result_set)
+  end
 
-    result.each do |tuple|
-      columns = [ tuple['id'].rjust(2),
-                  tuple['created_on'],
-                  tuple['amount'].rjust(12),
-                  tuple['memo'] ]
+  def search_expenses(search_query)
+    sql = "SELECT * FROM expenses WHERE memo ILIKE $1"
+    result_set = @connection.exec_params(sql, ["%#{search_query}%"])
+    display_expenses(result_set)
+  end
+
+  def display_expenses(result_set)
+    result_set.each do |record|
+      columns = [ record['id'].rjust(2),
+                  record['created_on'],
+                  record['amount'].rjust(12),
+                  record['memo'] ]
 
       puts columns.join(' | ')
     end
-  end
-
-  def add_expense(amount, memo, created_on = Date.today)
-    sql = "INSERT INTO expenses (amount, memo, created_on) VALUES ($1, $2, $3)"
-    @connection.exec_params(sql, [amount, memo, created_on])
   end
 end
 
 cli = CLI.new
 cli.run(ARGV)
+
 
