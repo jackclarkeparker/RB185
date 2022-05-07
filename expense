@@ -24,13 +24,8 @@ class CLI
       @application.delete_expense(arguments[0])
     when 'clear'
       puts "This will remove all expenses. Are you sure? (y/n)"
-      answer = ''
-      loop do
-        answer = gets.chomp.downcase
-        break if %w(y yes n no).include?(answer)
-        puts "Please enter y for yes, or n for no"
-      end
-      @application.clear_expenses if answer.start_with?('y')
+      answer = gets.chomp.downcase
+      @application.delete_all_expenses if answer == 'y'
     else
       display_help
     end
@@ -88,7 +83,7 @@ class ExpenseData
     end
   end
 
-  def clear_expenses
+  def delete_all_expenses
     @connection.exec("DELETE FROM expenses")
     puts "All expenses have been deleted."
   end
@@ -109,5 +104,4 @@ end
 
 cli = CLI.new
 cli.run(ARGV)
-
 
