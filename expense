@@ -22,6 +22,15 @@ class CLI
       @application.search_expenses(arguments[0])
     when 'delete'
       @application.delete_expense(arguments[0])
+    when 'clear'
+      puts "This will remove all expenses. Are you sure? (y/n)"
+      answer = ''
+      loop do
+        answer = gets.chomp.downcase
+        break if %w(y yes n no).include?(answer)
+        puts "Please enter y for yes, or n for no"
+      end
+      @application.clear_expenses if answer.start_with?('y')
     else
       display_help
     end
@@ -64,17 +73,6 @@ class ExpenseData
     display_expenses(result_set)
   end
 
-  def display_expenses(result_set)
-    result_set.each do |record|
-      columns = [ record['id'].rjust(2),
-                  record['created_on'],
-                  record['amount'].rjust(12),
-                  record['memo'] ]
-
-      puts columns.join(' | ')
-    end
-  end
-
   def delete_expense(index)
     sql = "SELECT * FROM expenses WHERE id = $1"
     result = @connection.exec_params(sql, [index])
@@ -87,6 +85,24 @@ class ExpenseData
       display_expenses(result)
     else
       puts "There is no expense with the id '#{index}'"
+    end
+  end
+
+  def clear_expenses
+    @connection.exec("DELETE FROM expenses")
+    puts "All expenses have been deleted."
+  end
+
+  private
+
+  def display_expenses(result_set)
+    result_set.each do |record|
+      columns = [ record['id'].rjust(2),
+                  record['created_on'],
+                  record['amount'].rjust(12),
+                  record['memo'] ]
+
+      puts columns.join(' | ')
     end
   end
 end
