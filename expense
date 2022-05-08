@@ -1,6 +1,7 @@
 #! /usr/bin/env ruby
 
 require 'pg'
+require 'io/console'
 
 class CLI
   def initialize
@@ -24,7 +25,7 @@ class CLI
       @application.delete_expense(arguments[0])
     when 'clear'
       puts "This will remove all expenses. Are you sure? (y/n)"
-      answer = gets.chomp.downcase
+      answer = IO.console.getch.downcase
       @application.delete_all_expenses if answer == 'y'
     else
       display_help
