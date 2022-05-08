@@ -50,6 +50,7 @@ end
 class ExpenseData
   def initialize
     @connection = PG::Connection.new(dbname: "expenses")
+    setup_schema
   end
 
   def add_expense(amount, memo)
@@ -91,6 +92,15 @@ class ExpenseData
 
   private
 
+  def setup_schema
+    sql = "SELECT COUNT(*) FROM information_schema.tables"\
+          " WHERE table_schema = 'public' AND table_name = 'expenses'"
+    if @connection.exec(sql).values.first.first == '0'
+      sql = File.read("schema.sql")
+      @connection.exec(sql)
+    end
+  end
+
   def display_expenses(result_set)
     display_count(result_set)
 
@@ -111,7 +121,7 @@ class ExpenseData
     expense_count = result_set.ntuples
 
     if expense_count > 0
-      puts "There are #{expense_count} expenses."
+      puts "There are #{expense_count} expense#{"s" if expense_count > 1}."
     else
       abort "There are no expenses."
     end
