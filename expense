@@ -92,14 +92,36 @@ class ExpenseData
   private
 
   def display_expenses(result_set)
+    display_count(result_set)
+
     result_set.each do |record|
-      columns = [ record['id'].rjust(2),
+      columns = [ record['id'].rjust(3),
                   record['created_on'],
                   record['amount'].rjust(12),
                   record['memo'] ]
 
       puts columns.join(' | ')
     end
+    puts ("-" * 50)
+
+    display_amount_total(result_set)
+  end
+
+  def display_count(result_set)
+    expense_count = result_set.ntuples
+
+    if expense_count > 0
+      puts "There are #{expense_count} expenses."
+    else
+      abort "There are no expenses."
+    end
+  end
+
+  def display_amount_total(result_set)
+    amounts = result_set.field_values('amount')
+    sum_amounts = amounts.map(&:to_f).sum
+    formatted_sum = format("%.2f", sum_amounts)
+    puts "Total" + formatted_sum.rjust(26)
   end
 end
 
